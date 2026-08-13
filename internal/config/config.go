@@ -7,13 +7,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const (
-	AuthModePrivate = "private"
-	AuthModeOAuth   = "oauth"
-)
-
 type Config struct {
-	AuthMode     string `mapstructure:"auth_mode"`
 	CompanyID    string `mapstructure:"company_id"`
 	OutputFormat string `mapstructure:"output_format"`
 	ClientID     string `mapstructure:"client_id"`
@@ -37,7 +31,6 @@ func Load(configDir string) (*Config, error) {
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(configDir)
 
-	viper.SetDefault("auth_mode", AuthModePrivate)
 	viper.SetDefault("output_format", "table")
 	viper.SetDefault("redirect_port", 8585)
 
@@ -46,8 +39,8 @@ func Load(configDir string) (*Config, error) {
 
 	// Bind specific env vars
 	viper.BindEnv("company_id", "BOKIO_COMPANY_ID")
-	viper.BindEnv("auth_mode", "BOKIO_AUTH_MODE")
 	viper.BindEnv("output_format", "BOKIO_OUTPUT")
+	viper.BindEnv("redirect_port", "BOKIO_REDIRECT_PORT")
 	viper.BindEnv("client_id", "BOKIO_CLIENT_ID")
 	viper.BindEnv("client_secret", "BOKIO_CLIENT_SECRET")
 
@@ -73,7 +66,6 @@ func Save(configDir string, cfg *Config) error {
 		return err
 	}
 
-	viper.Set("auth_mode", cfg.AuthMode)
 	viper.Set("company_id", cfg.CompanyID)
 	viper.Set("output_format", cfg.OutputFormat)
 	viper.Set("client_id", cfg.ClientID)

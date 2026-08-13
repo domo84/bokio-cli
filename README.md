@@ -58,20 +58,29 @@ Set your default company ID to avoid passing `-c` on every command:
 bokio config set company_id <your-company-id>
 ```
 
-Config is stored at `~/.config/bokio-cli/config.yaml`.
+Config is stored at `~/.config/bokio-cli/config.yaml`. Use `--config-dir` to keep it
+elsewhere.
 
 Available settings:
 
-| Key | Description | Default |
-|-----|-------------|---------|
-| `company_id` | Default company ID | |
-| `output_format` | Output format (`table` or `json`) | `table` |
-| `auth_mode` | Auth mode (`private` or `oauth`) | `private` |
-| `client_id` | OAuth client ID | |
-| `client_secret` | OAuth client secret | |
-| `redirect_port` | OAuth callback port | `8585` |
+| Key | Description | Default | Env var |
+|-----|-------------|---------|---------|
+| `company_id` | Default company ID, so `-c` can be omitted | | `BOKIO_COMPANY_ID` |
+| `output_format` | Output format (`table` or `json`) | `table` | `BOKIO_OUTPUT` |
+| `client_id` | OAuth client ID | | `BOKIO_CLIENT_ID` |
+| `client_secret` | OAuth client secret | | `BOKIO_CLIENT_SECRET` |
+| `redirect_port` | Local port for the OAuth callback | `8585` | `BOKIO_REDIRECT_PORT` |
 
-Environment variables with `BOKIO_` prefix override config (e.g. `BOKIO_COMPANY_ID`, `BOKIO_OUTPUT`).
+Settings resolve in this order, highest first: **command-line flags**, **`BOKIO_*`
+environment variables**, **the config file**, **built-in defaults**.
+
+To see every key with its current value and where that value came from:
+
+```bash
+bokio config list
+```
+
+`bokio config --help` documents the same list, so it is always available offline.
 
 ## Usage
 
@@ -187,9 +196,9 @@ bokio connections delete <id>
 
 | Flag | Short | Description |
 |------|-------|-------------|
-| `--company-id` | `-c` | Company ID (overrides config) |
-| `--output` | `-o` | Output format: `table` or `json` |
-| `--config-dir` | | Config directory path |
+| `--company-id` | `-c` | Company ID (or set `company_id` in config / `BOKIO_COMPANY_ID`) |
+| `--output` | `-o` | Output format: `table` or `json` (or set `output_format` in config) |
+| `--config-dir` | | Config directory path (default `~/.config/bokio-cli`) |
 
 List commands also support:
 

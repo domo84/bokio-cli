@@ -10,6 +10,14 @@ type Formatter interface {
 	Format(data any) error
 }
 
+// ConfigSetting is one configuration key rendered for display. Source is where the
+// current value came from: "env", "file" or "default".
+type ConfigSetting struct {
+	Key    string `json:"key"`
+	Value  string `json:"value"`
+	Source string `json:"source"`
+}
+
 // NewFormatter creates the appropriate formatter based on format string.
 func NewFormatter(format string) Formatter {
 	return NewFormatterWithWriter(format, os.Stdout)

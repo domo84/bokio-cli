@@ -62,6 +62,8 @@ func (f *TableFormatter) Format(data any) error {
 		return f.formatInvoicePayments(v)
 	case []api.InvoiceAttachment:
 		return f.formatInvoiceAttachments(v)
+	case []ConfigSetting:
+		return f.formatConfigSettings(v)
 	default:
 		return fmt.Errorf("unsupported type for table output: %T", data)
 	}
@@ -245,6 +247,15 @@ func (f *TableFormatter) formatInvoiceAttachments(attachments []api.InvoiceAttac
 	t.Header("ID", "File Name", "Content Type")
 	for _, a := range attachments {
 		t.Append(a.ID, a.FileName, a.ContentType)
+	}
+	return t.Render()
+}
+
+func (f *TableFormatter) formatConfigSettings(settings []ConfigSetting) error {
+	t := newTable(f.Writer)
+	t.Header("Key", "Value", "Source")
+	for _, s := range settings {
+		t.Append(s.Key, s.Value, s.Source)
 	}
 	return t.Render()
 }
