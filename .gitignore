@@ -9,3 +9,6 @@
 *.out
 .env
 credentials.json
+
+# Downloaded API specs (fetch with `make specs`)
+/specs/
