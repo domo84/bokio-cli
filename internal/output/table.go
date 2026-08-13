@@ -33,7 +33,7 @@ func (f *TableFormatter) Format(data any) error {
 	case []api.JournalEntry:
 		return f.formatJournalEntries(v)
 	case *api.JournalEntry:
-		return f.formatJournalEntries([]api.JournalEntry{*v})
+		return f.formatJournalEntry(v)
 	case []api.CreditNote:
 		return f.formatCreditNotes(v)
 	case *api.CreditNote:
@@ -127,15 +127,50 @@ func (f *TableFormatter) formatInvoices(invoices []api.Invoice) error {
 
 func (f *TableFormatter) formatJournalEntries(entries []api.JournalEntry) error {
 	t := newTable(f.Writer)
-	t.Header("ID", "Date", "Description", "Rows", "Reversed")
+	t.Header("ID", "Number", "Date", "Title", "Items", "Amount", "Reversed")
 	for _, e := range entries {
 		reversed := "No"
-		if e.IsReversed {
+		if e.IsReversed() {
 			reversed = "Yes"
 		}
-		t.Append(e.ID, e.Date, e.Description, strconv.Itoa(len(e.Rows)), reversed)
+		debit, _ := e.Balance()
+		t.Append(e.ID, e.JournalEntryNumber, e.Date, e.Title,
+			strconv.Itoa(len(e.Items)), fmtFloat(debit), reversed)
 	}
 	return t.Render()
+}
+
+// formatJournalEntry shows a single entry with its debit/credit lines, so the
+// actual bookkeeping is visible rather than just a summary row.
+func (f *TableFormatter) formatJournalEntry(e *api.JournalEntry) error {
+	t := newTable(f.Writer)
+	t.Header("Field", "Value")
+	t.Append("ID", e.ID)
+	t.Append("Number", e.JournalEntryNumber)
+	t.Append("Date", e.Date)
+	t.Append("Title", e.Title)
+	if e.ReversedByJournalEntryID != nil {
+		t.Append("Reversed by", *e.ReversedByJournalEntryID)
+	}
+	if e.ReversingJournalEntryID != nil {
+		t.Append("Reverses", *e.ReversingJournalEntryID)
+	}
+	for _, tag := range e.Tags {
+		t.Append("Tag", fmt.Sprintf("%s (%s) weight %s", tag.TagName, tag.TagGroupName, fmtFloat(tag.Weight)))
+	}
+	if err := t.Render(); err != nil {
+		return err
+	}
+
+	items := newTable(f.Writer)
+	items.Header("Line ID", "Account", "Debit", "Credit", "Tags")
+	for _, item := range e.Items {
+		items.Append(strconv.FormatInt(item.ID, 10), strconv.Itoa(item.Account),
+			fmtFloat(item.Debit), fmtFloat(item.Credit), strconv.Itoa(len(item.Tags)))
+	}
+	debit, credit := e.Balance()
+	items.Append("", "Total", fmtFloat(debit), fmtFloat(credit), "")
+	return items.Render()
 }
 
 func (f *TableFormatter) formatCreditNotes(notes []api.CreditNote) error {
@@ -149,9 +184,13 @@ func (f *TableFormatter) formatCreditNotes(notes []api.CreditNote) error {
 
 func (f *TableFormatter) formatUploads(uploads []api.Upload) error {
 	t := newTable(f.Writer)
-	t.Header("ID", "File Name", "Content Type", "Description", "Created")
+	t.Header("ID", "Description", "Content Type", "Journal Entry")
 	for _, u := range uploads {
-		t.Append(u.ID, u.FileName, u.ContentType, u.Description, u.CreatedAt.Format("2006-01-02"))
+		journalEntryID := ""
+		if u.JournalEntryID != nil {
+			journalEntryID = *u.JournalEntryID
+		}
+		t.Append(u.ID, u.Description, u.ContentType, journalEntryID)
 	}
 	return t.Render()
 }

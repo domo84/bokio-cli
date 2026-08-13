@@ -9,12 +9,23 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 )
 
 const (
 	DefaultBaseURL = "https://api.bokio.se/v1"
+
+	// defaultRetryWait is used when a 429 carries no usable wait hint.
+	defaultRetryWait = 5 * time.Second
+	// maxRetryWaitSeconds caps the honoured wait so an out-of-range header value
+	// cannot hang the command.
+	maxRetryWaitSeconds = 60
 )
+
+// maxRateLimitRetries bounds how many times a 429 is retried before the error is
+// returned to the caller. A variable so tests can exercise the exhaustion path.
+var maxRateLimitRetries = 3
 
 // HTTPDoer abstracts http.Client for testing.
 type HTTPDoer interface {
@@ -62,34 +73,93 @@ func (c *Client) newRequest(ctx context.Context, method, url string, body io.Rea
 }
 
 func (c *Client) do(req *http.Request) (*http.Response, error) {
-	resp, err := c.HTTP.Do(req)
+	for attempt := 0; ; attempt++ {
+		resp, err := c.HTTP.Do(req)
+		if err != nil {
+			return nil, err
+		}
+
+		// Retry rate-limited requests, waiting as long as the API asks.
+		if resp.StatusCode == http.StatusTooManyRequests && attempt < maxRateLimitRetries {
+			wait := retryAfter(resp.Header)
+			resp.Body.Close()
+
+			// The body was consumed by the attempt just made, so it has to be
+			// rebuilt — otherwise the retry would send an empty body.
+			retryReq, err := rewind(req)
+			if err != nil {
+				return nil, err
+			}
+			if err := sleep(req.Context(), wait); err != nil {
+				return nil, err
+			}
+			req = retryReq
+			continue
+		}
+
+		if resp.StatusCode >= 400 {
+			body, readErr := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			if readErr != nil {
+				return nil, fmt.Errorf("reading error response (HTTP %d): %w", resp.StatusCode, readErr)
+			}
+			return nil, parseError(resp.StatusCode, body)
+		}
+
+		return resp, nil
+	}
+}
+
+// rewind returns a request whose body can be sent again. Requests built from an
+// in-memory body carry GetBody, which is what makes a retry possible.
+func rewind(req *http.Request) (*http.Request, error) {
+	if req.Body == nil || req.Body == http.NoBody {
+		return req, nil
+	}
+	if req.GetBody == nil {
+		return nil, fmt.Errorf("cannot retry rate-limited request: body is not replayable")
+	}
+
+	body, err := req.GetBody()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("rewinding request body: %w", err)
 	}
+	retryReq := req.Clone(req.Context())
+	retryReq.Body = body
+	return retryReq, nil
+}
 
-	// Handle rate limiting
-	if resp.StatusCode == http.StatusTooManyRequests {
-		retryAfter := resp.Header.Get("Bokio-RateLimit-RetryAfter")
-		resp.Body.Close()
-		seconds, _ := strconv.Atoi(retryAfter)
-		if seconds <= 0 {
-			seconds = 5
+// retryAfter reads the wait hint from a 429, preferring Bokio's header over the
+// standard one, and clamps it so a bad value cannot stall the process.
+func retryAfter(h http.Header) time.Duration {
+	for _, name := range []string{"Bokio-RateLimit-RetryAfter", "Retry-After"} {
+		value := strings.TrimSpace(h.Get(name))
+		if value == "" {
+			continue
 		}
-		time.Sleep(time.Duration(seconds) * time.Second)
-		return c.HTTP.Do(req)
-	}
-
-	if resp.StatusCode >= 400 {
-		defer resp.Body.Close()
-		body, _ := io.ReadAll(resp.Body)
-		var errResp errorResponse
-		if err := json.Unmarshal(body, &errResp); err == nil && errResp.Error.Code != "" {
-			return nil, &errResp.Error
+		seconds, err := strconv.Atoi(value)
+		if err != nil || seconds <= 0 {
+			continue
 		}
-		return nil, fmt.Errorf("API error: %d %s", resp.StatusCode, string(body))
+		if seconds > maxRetryWaitSeconds {
+			seconds = maxRetryWaitSeconds
+		}
+		return time.Duration(seconds) * time.Second
 	}
+	return defaultRetryWait
+}
 
-	return resp, nil
+// sleep waits for d, or returns early if the context is cancelled.
+func sleep(ctx context.Context, d time.Duration) error {
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
 }
 
 // Get performs a GET request.

@@ -172,28 +172,69 @@ type CreateSettlementRequest struct {
 	AccountNumber int     `json:"accountNumber"`
 }
 
-// Journal Entry
+// JournalEntry is a verifikat: the posted bookkeeping record. Debits and credits
+// across Items must balance. Entries are immutable once posted — corrections are
+// made by reversing, not editing.
 type JournalEntry struct {
-	ID          string             `json:"id"`
-	Date        string             `json:"date"`
-	Description string             `json:"description,omitempty"`
-	Rows        []JournalEntryRow  `json:"rows"`
-	IsReversed  bool               `json:"isReversed"`
-	CreatedAt   time.Time          `json:"createdAt"`
-	UpdatedAt   time.Time          `json:"updatedAt"`
+	ID                 string             `json:"id,omitempty"`
+	Title              string             `json:"title,omitempty"`
+	JournalEntryNumber string             `json:"journalEntryNumber,omitempty"`
+	Date               string             `json:"date"`
+	Items              []JournalEntryItem `json:"items"`
+	// Tags applies to the whole entry (verification level). Mutually exclusive
+	// with per-item tags: use one level or the other, never both.
+	Tags                     []JournalEntryTag `json:"tags,omitempty"`
+	ReversingJournalEntryID  *string           `json:"reversingJournalEntryId,omitempty"`
+	ReversedByJournalEntryID *string           `json:"reversedByJournalEntryId,omitempty"`
 }
 
-type JournalEntryRow struct {
-	AccountNumber int     `json:"accountNumber"`
-	DebitAmount   float64 `json:"debitAmount"`
-	CreditAmount  float64 `json:"creditAmount"`
-	Description   string  `json:"description,omitempty"`
+// JournalEntryItem is a single debit/credit line (kontering).
+//
+// ID is assigned by the server and is NOT guaranteed to follow the order the
+// items were submitted in, nor the order they are returned in. To identify a
+// line — for example to tag it via PUT /journal-entries/{id}/tags — match on
+// Account plus amount rather than on slice index.
+type JournalEntryItem struct {
+	ID      int64             `json:"id,omitempty"`
+	Debit   float64           `json:"debit"`
+	Credit  float64           `json:"credit"`
+	Account int               `json:"account"`
+	Tags    []JournalEntryTag `json:"tags,omitempty"`
 }
 
+// JournalEntryTag references a tag value within a tag group (a dimension such as
+// cost center or project). Weight allocates the amount across tags in a group and
+// must be greater than 0 and at most 1; weights within a group must sum to 1 or less.
+type JournalEntryTag struct {
+	TagID        string  `json:"tagId"`
+	TagGroupID   string  `json:"tagGroupId,omitempty"`
+	TagName      string  `json:"tagName,omitempty"`
+	TagGroupName string  `json:"tagGroupName,omitempty"`
+	Weight       float64 `json:"weight"`
+}
+
+// CreateJournalEntryRequest is the body for POST /journal-entries. The API accepts
+// the full journalEntry schema; read-only fields are omitted here.
 type CreateJournalEntryRequest struct {
-	Date        string            `json:"date"`
-	Description string            `json:"description,omitempty"`
-	Rows        []JournalEntryRow `json:"rows"`
+	Title string             `json:"title,omitempty"`
+	Date  string             `json:"date"`
+	Items []JournalEntryItem `json:"items"`
+	Tags  []JournalEntryTag  `json:"tags,omitempty"`
+}
+
+// IsReversed reports whether this entry has been reversed by another entry.
+func (e JournalEntry) IsReversed() bool {
+	return e.ReversedByJournalEntryID != nil && *e.ReversedByJournalEntryID != ""
+}
+
+// Balance returns the summed debits and credits. They must be equal for the entry
+// to be valid.
+func (e JournalEntry) Balance() (debit, credit float64) {
+	for _, item := range e.Items {
+		debit += item.Debit
+		credit += item.Credit
+	}
+	return debit, credit
 }
 
 // Credit Note
@@ -216,13 +257,14 @@ type RecordCreditNoteRequest struct {
 	PaymentDate          string `json:"paymentDate"`
 }
 
-// Upload
+// Upload is a file stored in Bokio, optionally linked to a journal entry.
+// Description defaults to the file name when not supplied at upload time.
+// JournalEntryID is nil for uploads that are not yet bookkept.
 type Upload struct {
-	ID          string    `json:"id"`
-	FileName    string    `json:"fileName"`
-	ContentType string    `json:"contentType"`
-	Description string    `json:"description,omitempty"`
-	CreatedAt   time.Time `json:"createdAt"`
+	ID             string  `json:"id"`
+	Description    string  `json:"description,omitempty"`
+	ContentType    string  `json:"contentType,omitempty"`
+	JournalEntryID *string `json:"journalEntryId,omitempty"`
 }
 
 // Bank Payment
