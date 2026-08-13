@@ -12,3 +12,6 @@ credentials.json
 
 # Downloaded API specs (fetch with `make specs`)
 /specs/
+
+# Working notes kept out of this public repo
+/docs/local/
