@@ -106,6 +106,8 @@ bokio customers delete <id>
 bokio suppliers list
 bokio suppliers list -q "name==Supplier ABC"
 bokio suppliers get <id>
+bokio suppliers update <id> --bankgiro 5097-1282
+bokio suppliers update <id> --from-file supplier.json
 ```
 
 ### Invoices

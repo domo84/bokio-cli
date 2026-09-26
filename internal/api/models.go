@@ -94,6 +94,29 @@ type Supplier struct {
 	PaymentDetails *SupplierPaymentDetails `json:"paymentDetails,omitempty"`
 }
 
+// UpdateSupplierRequest is the supplier body without the read-only id.
+type UpdateSupplierRequest struct {
+	Name           string                  `json:"name"`
+	OrgNumber      string                  `json:"orgNumber,omitempty"`
+	VatNumber      string                  `json:"vatNumber,omitempty"`
+	Currency       string                  `json:"currency,omitempty"`
+	Address        *SupplierAddress        `json:"address,omitempty"`
+	PaymentDetails *SupplierPaymentDetails `json:"paymentDetails,omitempty"`
+}
+
+// UpdateRequest returns the supplier as an update body, so an update can
+// start from the current record rather than blanking omitted fields.
+func (s *Supplier) UpdateRequest() UpdateSupplierRequest {
+	return UpdateSupplierRequest{
+		Name:           s.Name,
+		OrgNumber:      s.OrgNumber,
+		VatNumber:      s.VatNumber,
+		Currency:       s.Currency,
+		Address:        s.Address,
+		PaymentDetails: s.PaymentDetails,
+	}
+}
+
 type SupplierAddress struct {
 	Line1      string  `json:"line1,omitempty"`
 	Line2      *string `json:"line2,omitempty"`

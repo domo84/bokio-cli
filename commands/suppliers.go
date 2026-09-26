@@ -1,6 +1,8 @@
 package commands
 
 import (
+	"fmt"
+
 	"github.com/domo84/bokio-cli/internal/api"
 	"github.com/spf13/cobra"
 )
@@ -13,6 +15,7 @@ func newSuppliersCmd() *cobra.Command {
 
 	cmd.AddCommand(newSuppliersListCmd())
 	cmd.AddCommand(newSuppliersGetCmd())
+	cmd.AddCommand(newSuppliersUpdateCmd())
 
 	return cmd
 }
@@ -73,4 +76,89 @@ func newSuppliersGetCmd() *cobra.Command {
 			return state.formatter.Format(s)
 		},
 	}
+}
+
+func newSuppliersUpdateCmd() *cobra.Command {
+	var (
+		name     string
+		orgNum   string
+		vatNum   string
+		currency string
+		bankgiro string
+		plusgiro string
+		fromFile string
+	)
+
+	cmd := &cobra.Command{
+		Use:   "update <id>",
+		Short: "Update a supplier",
+		Long: `Update a supplier. The current supplier is fetched first and the changes are
+applied on top, so fields you don't set are kept. --from-file is merged over
+the current supplier, then flags are applied over that.
+
+--bankgiro and --plusgiro replace the supplier's payment details.`,
+		Example: `  bokio suppliers update <id> --bankgiro 5097-1282
+  bokio suppliers update <id> --from-file supplier.json`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if bankgiro != "" && plusgiro != "" {
+				return fmt.Errorf("--bankgiro and --plusgiro are mutually exclusive")
+			}
+
+			state, err := initStateWithClient(cmd)
+			if err != nil {
+				return err
+			}
+			if err := requireCompanyID(state); err != nil {
+				return err
+			}
+
+			current, err := state.client.GetSupplier(cmd.Context(), args[0])
+			if err != nil {
+				return err
+			}
+			req := current.UpdateRequest()
+
+			if fromFile != "" {
+				if err := loadJSONFile(fromFile, &req); err != nil {
+					return fmt.Errorf("reading file: %w", err)
+				}
+			}
+
+			if name != "" {
+				req.Name = name
+			}
+			if orgNum != "" {
+				req.OrgNumber = orgNum
+			}
+			if vatNum != "" {
+				req.VatNumber = vatNum
+			}
+			if currency != "" {
+				req.Currency = currency
+			}
+			if bankgiro != "" {
+				req.PaymentDetails = &api.SupplierPaymentDetails{Type: "bankgiro", BankgiroNumber: bankgiro}
+			}
+			if plusgiro != "" {
+				req.PaymentDetails = &api.SupplierPaymentDetails{Type: "plusgiro", PlusgiroNumber: plusgiro}
+			}
+
+			s, err := state.client.UpdateSupplier(cmd.Context(), args[0], req)
+			if err != nil {
+				return err
+			}
+			return state.formatter.Format(s)
+		},
+	}
+
+	cmd.Flags().StringVar(&name, "name", "", "Supplier name")
+	cmd.Flags().StringVar(&orgNum, "org-number", "", "Organisation number")
+	cmd.Flags().StringVar(&vatNum, "vat-number", "", "VAT number")
+	cmd.Flags().StringVar(&currency, "currency", "", "ISO 4217 currency code")
+	cmd.Flags().StringVar(&bankgiro, "bankgiro", "", "Bankgiro number, e.g. 5097-1282")
+	cmd.Flags().StringVar(&plusgiro, "plusgiro", "", "Plusgiro number, e.g. 12345-6")
+	cmd.Flags().StringVar(&fromFile, "from-file", "", "Merge a JSON supplier body over the current supplier")
+
+	return cmd
 }

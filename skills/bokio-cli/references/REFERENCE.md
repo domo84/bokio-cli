@@ -44,7 +44,10 @@ bokio customers delete <id>
 ```
 bokio suppliers list [flags]          # filter fields: name, vatNumber, orgNumber
 bokio suppliers get <id>
+bokio suppliers update <id> [--name <name>] [--org-number <num>] [--vat-number <num>] [--currency <code>] [--bankgiro <num> | --plusgiro <num>] [--from-file <path>]
 ```
+
+`update` fetches the supplier first and applies changes on top, so unset fields are kept. Requires the `suppliers:write` scope.
 
 ## Items
 

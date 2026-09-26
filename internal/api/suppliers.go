@@ -13,3 +13,9 @@ func (c *Client) GetSupplier(ctx context.Context, id string) (*Supplier, error) 
 	err := c.GetJSON(ctx, c.companyURL("/suppliers/"+id), &s)
 	return &s, err
 }
+
+func (c *Client) UpdateSupplier(ctx context.Context, id string, req UpdateSupplierRequest) (*Supplier, error) {
+	var s Supplier
+	err := c.PutJSON(ctx, c.companyURL("/suppliers/"+id), req, &s)
+	return &s, err
+}
