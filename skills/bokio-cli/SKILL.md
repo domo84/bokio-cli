@@ -134,6 +134,7 @@ Example: `bokio invoices list -q "status==draft&&invoiceDate>=2025-01-01"`
 | `config` | `get`, `set` |
 | `company` | get company info |
 | `customers` | `list`, `get`, `create`, `update`, `delete` |
+| `suppliers` | `list`, `get` |
 | `items` | `list`, `get`, `create`, `update`, `delete` |
 | `invoices` | `list`, `get`, `create`, `update`, `publish`, `record` |
 | `invoices line-items` | `add`, `update`, `delete` |

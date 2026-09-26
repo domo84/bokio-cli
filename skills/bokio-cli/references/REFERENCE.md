@@ -34,9 +34,16 @@ bokio company                          # Get company information
 ```
 bokio customers list [flags]
 bokio customers get <id>
-bokio customers create --name <name> [--email <email>] [--phone <phone>] [--address <addr>] [--city <city>] [--zip-code <zip>] [--country <cc>] [--org-number <num>] [--from-file <path>]
+bokio customers create --name <name> [--type company|private] [--email <email>] [--phone <phone>] [--address <addr>] [--city <city>] [--zip-code <zip>] [--country <cc>] [--org-number <num>] [--from-file <path>]
 bokio customers update <id> --from-file <path>
 bokio customers delete <id>
+```
+
+## Suppliers
+
+```
+bokio suppliers list [flags]          # filter fields: name, vatNumber, orgNumber
+bokio suppliers get <id>
 ```
 
 ## Items

@@ -22,6 +22,10 @@ func (f *TableFormatter) Format(data any) error {
 		return f.formatCustomers(v)
 	case *api.Customer:
 		return f.formatCustomers([]api.Customer{*v})
+	case []api.Supplier:
+		return f.formatSuppliers(v)
+	case *api.Supplier:
+		return f.formatSuppliers([]api.Supplier{*v})
 	case []api.Item:
 		return f.formatItems(v)
 	case *api.Item:
@@ -94,9 +98,34 @@ func (f *TableFormatter) formatCompanyInfo(c *api.CompanyInfo) error {
 
 func (f *TableFormatter) formatCustomers(customers []api.Customer) error {
 	t := newTable(f.Writer)
-	t.Header("ID", "Name", "Email", "Customer #", "City")
+	t.Header("ID", "Name", "Type", "Org Number", "Email", "City")
 	for _, c := range customers {
-		t.Append(c.ID, c.Name, c.Email, c.CustomerNumber, c.City)
+		email := ""
+		if contact := c.DefaultContact(); contact != nil {
+			email = contact.Email
+		}
+		city := ""
+		if c.Address != nil {
+			city = c.Address.City
+		}
+		t.Append(c.ID, c.Name, c.Type, c.OrgNumber, email, city)
+	}
+	return t.Render()
+}
+
+func (f *TableFormatter) formatSuppliers(suppliers []api.Supplier) error {
+	t := newTable(f.Writer)
+	t.Header("ID", "Name", "Org Number", "Currency", "City", "Payment")
+	for _, s := range suppliers {
+		city := ""
+		if s.Address != nil {
+			city = s.Address.City
+		}
+		payment := ""
+		if s.PaymentDetails != nil {
+			payment = s.PaymentDetails.Type
+		}
+		t.Append(s.ID, s.Name, s.OrgNumber, s.Currency, city, payment)
 	}
 	return t.Render()
 }

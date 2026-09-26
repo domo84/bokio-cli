@@ -100,6 +100,14 @@ bokio customers update <id> --from-file customer.json
 bokio customers delete <id>
 ```
 
+### Suppliers
+
+```bash
+bokio suppliers list
+bokio suppliers list -q "name==Supplier ABC"
+bokio suppliers get <id>
+```
+
 ### Invoices
 
 ```bash

@@ -34,6 +34,7 @@ commands/                   Cobra command definitions (one file per resource)
   config.go                 config get|set
   company.go                company (get info)
   customers.go              customers list|get|create|update|delete
+  suppliers.go              suppliers list|get
   items.go                  items list|get|create|update|delete
   invoices.go               invoices + sub-resources (line-items, attachments, payments, settlements)
   journal_entries.go        journal-entries list|get|create|reverse

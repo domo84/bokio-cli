@@ -83,6 +83,7 @@ func newCustomersGetCmd() *cobra.Command {
 func newCustomersCreateCmd() *cobra.Command {
 	var (
 		name     string
+		custType string
 		email    string
 		phone    string
 		address  string
@@ -116,30 +117,50 @@ func newCustomersCreateCmd() *cobra.Command {
 			if name != "" {
 				req.Name = name
 			}
-			if email != "" {
-				req.Email = email
-			}
-			if phone != "" {
-				req.Phone = phone
-			}
-			if address != "" {
-				req.Address = address
-			}
-			if city != "" {
-				req.City = city
-			}
-			if zipCode != "" {
-				req.ZipCode = zipCode
-			}
-			if country != "" {
-				req.Country = country
+			if custType != "" {
+				req.Type = custType
 			}
 			if orgNum != "" {
-				req.OrganisationNumber = orgNum
+				req.OrgNumber = orgNum
+			}
+
+			// Email and phone live on a contact, not the customer itself.
+			if email != "" || phone != "" {
+				contact := defaultContact(&req)
+				if email != "" {
+					contact.Email = email
+				}
+				if phone != "" {
+					contact.Phone = phone
+				}
+			}
+
+			if address != "" || city != "" || zipCode != "" || country != "" {
+				if req.Address == nil {
+					req.Address = &api.CustomerAddress{}
+				}
+				if address != "" {
+					req.Address.Line1 = address
+				}
+				if city != "" {
+					req.Address.City = city
+				}
+				if zipCode != "" {
+					req.Address.PostalCode = zipCode
+				}
+				if country != "" {
+					req.Address.Country = country
+				}
 			}
 
 			if req.Name == "" {
 				return fmt.Errorf("--name is required")
+			}
+			if req.Type == "" {
+				req.Type = "company"
+			}
+			if req.Address != nil && req.Address.Country == "" {
+				req.Address.Country = "SE"
 			}
 
 			cust, err := state.client.CreateCustomer(cmd.Context(), req)
@@ -151,16 +172,29 @@ func newCustomersCreateCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&name, "name", "", "Customer name (required)")
-	cmd.Flags().StringVar(&email, "email", "", "Email address")
-	cmd.Flags().StringVar(&phone, "phone", "", "Phone number")
-	cmd.Flags().StringVar(&address, "address", "", "Street address")
+	cmd.Flags().StringVar(&custType, "type", "", "Customer type: company or private (default company)")
+	cmd.Flags().StringVar(&email, "email", "", "Email address of the default contact")
+	cmd.Flags().StringVar(&phone, "phone", "", "Phone number of the default contact")
+	cmd.Flags().StringVar(&address, "address", "", "Street address (with an address, --city and --zip-code are required)")
 	cmd.Flags().StringVar(&city, "city", "", "City")
-	cmd.Flags().StringVar(&zipCode, "zip-code", "", "Zip code")
-	cmd.Flags().StringVar(&country, "country", "", "Country")
+	cmd.Flags().StringVar(&zipCode, "zip-code", "", "Postal code")
+	cmd.Flags().StringVar(&country, "country", "", "ISO 3166-1 alpha-2 country code (default SE when an address is given)")
 	cmd.Flags().StringVar(&orgNum, "org-number", "", "Organisation number")
 	cmd.Flags().StringVar(&fromFile, "from-file", "", "Load request from JSON file")
 
 	return cmd
+}
+
+// defaultContact returns the request's default contact, creating one named
+// after the customer if there is none.
+func defaultContact(req *api.CreateCustomerRequest) *api.CustomerContact {
+	for i := range req.ContactsDetails {
+		if req.ContactsDetails[i].IsDefault {
+			return &req.ContactsDetails[i]
+		}
+	}
+	req.ContactsDetails = append(req.ContactsDetails, api.CustomerContact{Name: req.Name, IsDefault: true})
+	return &req.ContactsDetails[len(req.ContactsDetails)-1]
 }
 
 func newCustomersUpdateCmd() *cobra.Command {

@@ -25,39 +25,94 @@ type CompanyInfo struct {
 
 // Customer
 type Customer struct {
-	ID                 string            `json:"id"`
-	Name               string            `json:"name"`
-	OrganisationNumber string            `json:"organisationNumber,omitempty"`
-	VatNumber          string            `json:"vatNumber,omitempty"`
-	Email              string            `json:"email,omitempty"`
-	Phone              string            `json:"phone,omitempty"`
-	Address            string            `json:"address,omitempty"`
-	Address2           string            `json:"address2,omitempty"`
-	City               string            `json:"city,omitempty"`
-	ZipCode            string            `json:"zipCode,omitempty"`
-	Country            string            `json:"country,omitempty"`
-	CustomerNumber     string            `json:"customerNumber,omitempty"`
-	Metadata           map[string]string `json:"metadata,omitempty"`
-	CreatedAt          time.Time         `json:"createdAt"`
-	UpdatedAt          time.Time         `json:"updatedAt"`
+	ID               string            `json:"id"`
+	Name             string            `json:"name"`
+	Type             string            `json:"type"`
+	VatNumber        string            `json:"vatNumber,omitempty"`
+	OrgNumber        string            `json:"orgNumber,omitempty"`
+	PaymentTerms     string            `json:"paymentTerms,omitempty"`
+	ContactsDetails  []CustomerContact `json:"contactsDetails,omitempty"`
+	Address          *CustomerAddress  `json:"address,omitempty"`
+	Language         string            `json:"language,omitempty"`
+	ModifiedDateTime *time.Time        `json:"modifiedDateTime,omitempty"`
+}
+
+// DefaultContact returns the contact flagged as default, falling back to the
+// first one, or nil when the customer has no contacts.
+func (c *Customer) DefaultContact() *CustomerContact {
+	for i := range c.ContactsDetails {
+		if c.ContactsDetails[i].IsDefault {
+			return &c.ContactsDetails[i]
+		}
+	}
+	if len(c.ContactsDetails) > 0 {
+		return &c.ContactsDetails[0]
+	}
+	return nil
+}
+
+type CustomerContact struct {
+	ID        *string `json:"id,omitempty"`
+	Name      string  `json:"name,omitempty"`
+	Email     string  `json:"email,omitempty"`
+	Phone     string  `json:"phone,omitempty"`
+	IsDefault bool    `json:"isDefault"`
+}
+
+// CustomerAddress is the spec's addressWithCountrySubdivision. When sent,
+// line1, city, postalCode and country are required.
+type CustomerAddress struct {
+	Line1              string  `json:"line1"`
+	Line2              *string `json:"line2,omitempty"`
+	City               string  `json:"city"`
+	PostalCode         string  `json:"postalCode"`
+	Country            string  `json:"country"`
+	CountrySubdivision *string `json:"countrySubdivision,omitempty"`
 }
 
 type CreateCustomerRequest struct {
-	Name               string            `json:"name"`
-	OrganisationNumber string            `json:"organisationNumber,omitempty"`
-	VatNumber          string            `json:"vatNumber,omitempty"`
-	Email              string            `json:"email,omitempty"`
-	Phone              string            `json:"phone,omitempty"`
-	Address            string            `json:"address,omitempty"`
-	Address2           string            `json:"address2,omitempty"`
-	City               string            `json:"city,omitempty"`
-	ZipCode            string            `json:"zipCode,omitempty"`
-	Country            string            `json:"country,omitempty"`
-	CustomerNumber     string            `json:"customerNumber,omitempty"`
-	Metadata           map[string]string `json:"metadata,omitempty"`
+	Name            string            `json:"name"`
+	Type            string            `json:"type"`
+	VatNumber       string            `json:"vatNumber,omitempty"`
+	OrgNumber       string            `json:"orgNumber,omitempty"`
+	PaymentTerms    string            `json:"paymentTerms,omitempty"`
+	ContactsDetails []CustomerContact `json:"contactsDetails,omitempty"`
+	Address         *CustomerAddress  `json:"address,omitempty"`
+	Language        string            `json:"language,omitempty"`
 }
 
 type UpdateCustomerRequest = CreateCustomerRequest
+
+// Supplier
+type Supplier struct {
+	ID             string                  `json:"id"`
+	Name           string                  `json:"name"`
+	OrgNumber      string                  `json:"orgNumber,omitempty"`
+	VatNumber      string                  `json:"vatNumber,omitempty"`
+	Currency       string                  `json:"currency,omitempty"`
+	Address        *SupplierAddress        `json:"address,omitempty"`
+	PaymentDetails *SupplierPaymentDetails `json:"paymentDetails,omitempty"`
+}
+
+type SupplierAddress struct {
+	Line1      string  `json:"line1,omitempty"`
+	Line2      *string `json:"line2,omitempty"`
+	City       string  `json:"city,omitempty"`
+	PostalCode string  `json:"postalCode,omitempty"`
+	Country    string  `json:"country,omitempty"`
+}
+
+// SupplierPaymentDetails flattens the API's type-discriminated union; only the
+// fields matching Type are set.
+type SupplierPaymentDetails struct {
+	Type           string `json:"type"`
+	BankgiroNumber string `json:"bankgiroNumber,omitempty"`
+	PlusgiroNumber string `json:"plusgiroNumber,omitempty"`
+	ClearingNumber string `json:"clearingNumber,omitempty"`
+	AccountNumber  string `json:"accountNumber,omitempty"`
+	IBAN           string `json:"iban,omitempty"`
+	BIC            string `json:"bic,omitempty"`
+}
 
 // Item
 type Item struct {
