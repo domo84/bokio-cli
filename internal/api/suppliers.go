@@ -19,3 +19,9 @@ func (c *Client) UpdateSupplier(ctx context.Context, id string, req UpdateSuppli
 	err := c.PutJSON(ctx, c.companyURL("/suppliers/"+id), req, &s)
 	return &s, err
 }
+
+func (c *Client) CreateSupplier(ctx context.Context, req CreateSupplierRequest) (*Supplier, error) {
+	var s Supplier
+	err := c.PostJSON(ctx, c.companyURL("/suppliers"), req, &s)
+	return &s, err
+}

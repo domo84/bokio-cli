@@ -104,6 +104,8 @@ type UpdateSupplierRequest struct {
 	PaymentDetails *SupplierPaymentDetails `json:"paymentDetails,omitempty"`
 }
 
+type CreateSupplierRequest = UpdateSupplierRequest
+
 // UpdateRequest returns the supplier as an update body, so an update can
 // start from the current record rather than blanking omitted fields.
 func (s *Supplier) UpdateRequest() UpdateSupplierRequest {

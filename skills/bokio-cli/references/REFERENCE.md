@@ -44,6 +44,7 @@ bokio customers delete <id>
 ```
 bokio suppliers list [flags]          # filter fields: name, vatNumber, orgNumber
 bokio suppliers get <id>
+bokio suppliers create --name <name> [--org-number <num>] [--vat-number <num>] [--currency <code>] [--address <addr>] [--city <city>] [--zip-code <zip>] [--country <cc>] [--bankgiro <num> | --plusgiro <num>] [--from-file <path>]
 bokio suppliers update <id> [--name <name>] [--org-number <num>] [--vat-number <num>] [--currency <code>] [--bankgiro <num> | --plusgiro <num>] [--from-file <path>]
 ```
 
