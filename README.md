@@ -111,6 +111,19 @@ bokio suppliers update <id> --bankgiro 5097-1282
 bokio suppliers update <id> --from-file supplier.json
 ```
 
+### Supplier invoices
+
+```bash
+bokio supplier-invoices list
+bokio supplier-invoices list -q "dueDate>=2025-01-01" --project-id <id>
+bokio supplier-invoices get <id>
+bokio supplier-invoices create --supplier-id <id> --invoice-date 2025-01-15 --due-date 2025-02-15 --total-amount 1250 --upload-id <uploadId>
+bokio supplier-invoices update <id> --due-date 2025-03-01
+bokio supplier-invoices delete <id>
+bokio supplier-invoices uploads add <id> <uploadId>
+bokio supplier-invoices line-items add <id> --description Consulting --quantity 10 --unit-price 100 --tax-rate 25
+```
+
 ### Invoices
 
 ```bash

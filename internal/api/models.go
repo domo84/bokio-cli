@@ -139,6 +139,79 @@ type SupplierPaymentDetails struct {
 	BIC            string `json:"bic,omitempty"`
 }
 
+// SupplierInvoice is an incoming invoice (leverantörsfaktura).
+type SupplierInvoice struct {
+	ID              string                    `json:"id"`
+	SupplierRef     Ref                       `json:"supplierRef"`
+	InvoiceNumber   string                    `json:"invoiceNumber,omitempty"`
+	InvoiceDate     string                    `json:"invoiceDate"`
+	DueDate         string                    `json:"dueDate"`
+	TotalAmount     float64                   `json:"totalAmount"`
+	RemainingAmount float64                   `json:"remainingAmount"`
+	Currency        string                    `json:"currency,omitempty"`
+	CurrencyRate    float64                   `json:"currencyRate,omitempty"`
+	JournalEntryRef *Ref                      `json:"journalEntryRef,omitempty"`
+	LineItems       []SupplierInvoiceLineItem `json:"lineItems,omitempty"`
+	UploadRefs      []Ref                     `json:"uploadRefs,omitempty"`
+}
+
+type SupplierInvoiceLineItem struct {
+	ID            string         `json:"id,omitempty"`
+	Description   string         `json:"description"`
+	Quantity      *float64       `json:"quantity,omitempty"`
+	UnitPrice     float64        `json:"unitPrice"`
+	UnitType      string         `json:"unitType,omitempty"`
+	TaxRate       *float64       `json:"taxRate,omitempty"`
+	ProjectRef    *ProjectRef    `json:"projectRef,omitempty"`
+	CostCenterRef *CostCenterRef `json:"costCenterRef,omitempty"`
+}
+
+type ProjectRef struct {
+	ID            string `json:"id,omitempty"`
+	ProjectName   string `json:"projectName,omitempty"`
+	ProjectNumber string `json:"projectNumber,omitempty"`
+}
+
+// CostCenterRef points at a dimension 1 tag value.
+type CostCenterRef struct {
+	TagID   string `json:"tagId,omitempty"`
+	TagName string `json:"tagName,omitempty"`
+}
+
+type CreateSupplierInvoiceRequest struct {
+	SupplierRef   Ref                       `json:"supplierRef"`
+	InvoiceNumber string                    `json:"invoiceNumber,omitempty"`
+	InvoiceDate   string                    `json:"invoiceDate"`
+	DueDate       string                    `json:"dueDate"`
+	TotalAmount   float64                   `json:"totalAmount"`
+	UploadRef     *Ref                      `json:"uploadRef,omitempty"`
+	LineItems     []SupplierInvoiceLineItem `json:"lineItems,omitempty"`
+}
+
+// UpdateSupplierInvoiceRequest replaces the invoice. Line items without an id
+// are added, and existing line items left out are removed.
+type UpdateSupplierInvoiceRequest struct {
+	SupplierRef   Ref                       `json:"supplierRef"`
+	InvoiceNumber string                    `json:"invoiceNumber,omitempty"`
+	InvoiceDate   string                    `json:"invoiceDate"`
+	DueDate       string                    `json:"dueDate"`
+	TotalAmount   float64                   `json:"totalAmount"`
+	LineItems     []SupplierInvoiceLineItem `json:"lineItems,omitempty"`
+}
+
+// UpdateRequest returns the supplier invoice as an update body, keeping its
+// line items so a PUT doesn't remove them.
+func (s *SupplierInvoice) UpdateRequest() UpdateSupplierInvoiceRequest {
+	return UpdateSupplierInvoiceRequest{
+		SupplierRef:   Ref{ID: s.SupplierRef.ID},
+		InvoiceNumber: s.InvoiceNumber,
+		InvoiceDate:   s.InvoiceDate,
+		DueDate:       s.DueDate,
+		TotalAmount:   s.TotalAmount,
+		LineItems:     s.LineItems,
+	}
+}
+
 // Item
 type Item struct {
 	ID          string  `json:"id"`

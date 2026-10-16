@@ -116,6 +116,7 @@ func Execute() error {
 	root.AddCommand(newCompanyCmd())
 	root.AddCommand(newCustomersCmd())
 	root.AddCommand(newSuppliersCmd())
+	root.AddCommand(newSupplierInvoicesCmd())
 	root.AddCommand(newItemsCmd())
 	root.AddCommand(newInvoicesCmd())
 	root.AddCommand(newJournalEntriesCmd())

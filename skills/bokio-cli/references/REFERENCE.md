@@ -50,6 +50,20 @@ bokio suppliers update <id> [--name <name>] [--org-number <num>] [--vat-number <
 
 `update` fetches the supplier first and applies changes on top, so unset fields are kept. Requires the `suppliers:write` scope.
 
+## Supplier invoices
+
+```
+bokio supplier-invoices list [flags] [--project-id <id>]   # filter fields: supplierRef.id, invoiceNumber, totalAmount, currency, invoiceDate, dueDate
+bokio supplier-invoices get <id>
+bokio supplier-invoices create --supplier-id <id> --invoice-date <date> --due-date <date> --total-amount <amount> [--invoice-number <num>] [--upload-id <id>] [--from-file <path>]
+bokio supplier-invoices update <id> [--supplier-id <id>] [--invoice-number <num>] [--invoice-date <date>] [--due-date <date>] [--total-amount <amount>] [--from-file <path>]
+bokio supplier-invoices delete <id>
+bokio supplier-invoices uploads add <id> <uploadId>
+bokio supplier-invoices line-items add <id> --description <desc> --unit-price <price> [--quantity <n>] [--unit-type <unit>] [--tax-rate <rate>] [--project-id <id>] [--cost-center-id <tagId>] [--from-file <path>]
+```
+
+`update` fetches the invoice first and applies changes on top, keeping its line items; a `lineItems` array in `--from-file` replaces them (line items without `id` are added, ones left out are removed). Line items can only be added once an upload is connected. Only invoices created by the same integration can be updated or deleted. Requires the `supplier-invoices:read` / `supplier-invoices:write` scopes.
+
 ## Items
 
 ```

@@ -26,6 +26,12 @@ func (f *TableFormatter) Format(data any) error {
 		return f.formatSuppliers(v)
 	case *api.Supplier:
 		return f.formatSuppliers([]api.Supplier{*v})
+	case []api.SupplierInvoice:
+		return f.formatSupplierInvoices(v)
+	case *api.SupplierInvoice:
+		return f.formatSupplierInvoice(v)
+	case *api.SupplierInvoiceLineItem:
+		return f.formatSupplierInvoiceLineItems([]api.SupplierInvoiceLineItem{*v})
 	case []api.Item:
 		return f.formatItems(v)
 	case *api.Item:
@@ -126,6 +132,68 @@ func (f *TableFormatter) formatSuppliers(suppliers []api.Supplier) error {
 			payment = s.PaymentDetails.Type
 		}
 		t.Append(s.ID, s.Name, s.OrgNumber, s.Currency, city, payment)
+	}
+	return t.Render()
+}
+
+func (f *TableFormatter) formatSupplierInvoices(invoices []api.SupplierInvoice) error {
+	t := newTable(f.Writer)
+	t.Header("ID", "Invoice #", "Supplier", "Date", "Due", "Total", "Remaining", "Currency")
+	for _, inv := range invoices {
+		t.Append(inv.ID, inv.InvoiceNumber, inv.SupplierRef.Name, inv.InvoiceDate, inv.DueDate,
+			fmtFloat(inv.TotalAmount), fmtFloat(inv.RemainingAmount), inv.Currency)
+	}
+	return t.Render()
+}
+
+// formatSupplierInvoice shows a single invoice with its line items.
+func (f *TableFormatter) formatSupplierInvoice(inv *api.SupplierInvoice) error {
+	t := newTable(f.Writer)
+	t.Header("Field", "Value")
+	t.Append("ID", inv.ID)
+	t.Append("Supplier", fmt.Sprintf("%s (%s)", inv.SupplierRef.Name, inv.SupplierRef.ID))
+	t.Append("Invoice #", inv.InvoiceNumber)
+	t.Append("Date", inv.InvoiceDate)
+	t.Append("Due", inv.DueDate)
+	t.Append("Total", fmtFloat(inv.TotalAmount))
+	t.Append("Remaining", fmtFloat(inv.RemainingAmount))
+	t.Append("Currency", inv.Currency)
+	if inv.JournalEntryRef != nil {
+		t.Append("Journal Entry", inv.JournalEntryRef.ID)
+	}
+	for _, u := range inv.UploadRefs {
+		t.Append("Upload", u.ID)
+	}
+	if err := t.Render(); err != nil {
+		return err
+	}
+	if len(inv.LineItems) == 0 {
+		return nil
+	}
+	return f.formatSupplierInvoiceLineItems(inv.LineItems)
+}
+
+func (f *TableFormatter) formatSupplierInvoiceLineItems(items []api.SupplierInvoiceLineItem) error {
+	t := newTable(f.Writer)
+	t.Header("Line ID", "Description", "Qty", "Unit", "Unit Price", "VAT %", "Project", "Cost Center")
+	for _, li := range items {
+		qty := "1.00"
+		if li.Quantity != nil {
+			qty = fmtFloat(*li.Quantity)
+		}
+		tax := ""
+		if li.TaxRate != nil {
+			tax = fmtFloat(*li.TaxRate)
+		}
+		project := ""
+		if li.ProjectRef != nil {
+			project = li.ProjectRef.ProjectName
+		}
+		costCenter := ""
+		if li.CostCenterRef != nil {
+			costCenter = li.CostCenterRef.TagName
+		}
+		t.Append(li.ID, li.Description, qty, li.UnitType, fmtFloat(li.UnitPrice), tax, project, costCenter)
 	}
 	return t.Render()
 }
